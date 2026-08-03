@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import API from "../services/api";
 import toast from "react-hot-toast";
 import ATSChart from "../components/ATSChart";
+import ThemeToggle from "../components/ThemeToggle";
 
 function Dashboard() {
   const [stats, setStats] = useState({
@@ -53,7 +54,9 @@ function Dashboard() {
   return (
     <div className="min-h-screen bg-gray-100 p-8">
       <h1 className="text-4xl font-bold mb-8">Dashboard</h1>
-
+      <div className="flex justify-end mb-6">
+        <ThemeToggle />
+      </div>
       {/* Dashboard Cards */}
 
       <div className="grid md:grid-cols-3 gap-6">

@@ -33,11 +33,12 @@ function Login() {
     try {
       const res = await API.post("/auth/login", formData);
 
-      localStorage.setItem("token", res.data.token);
+    localStorage.setItem("token", res.data.token);
 
-      toast.success("Login Successful");
+    toast.success("Login Successful");
 
-      navigate("/dashboard");
+    navigate("/dashboard");
+
     } catch (error) {
       toast.error(error.response?.data?.message || "Login Failed");
     }
