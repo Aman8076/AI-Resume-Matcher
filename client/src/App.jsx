@@ -8,27 +8,39 @@ import ResumeHistory from "./pages/ResumeHistory";
 import JobMatches from "./pages/JobMatches";
 import Profile from "./pages/Profile";
 import AdminDashboard from "./pages/AdminDashboard";
+import MyApplications from "./pages/MyApplications";
 
 function App() {
-  return (
-    <Routes>
-      <Route path="/" element={<Login />} />
 
-      <Route path="/register" element={<Register />} />
+    return (
 
-      <Route path="/dashboard" element={<Dashboard />} />
+        <Routes>
 
-      <Route path="/upload" element={<UploadResume />} />
+            <Route path="/" element={<Login />} />
 
-      <Route path="/history" element={<ResumeHistory />} />
+            <Route path="/register" element={<Register />} />
 
-      <Route path="/jobs" element={<JobMatches />} />
+            <Route path="/dashboard" element={<Dashboard />} />
 
-      <Route path="/profile" element={<Profile />} />
+            <Route path="/upload" element={<UploadResume />} />
 
-      <Route path="/admin" element={<AdminDashboard />} />
-    </Routes>
-  );
+            <Route path="/history" element={<ResumeHistory />} />
+
+            <Route path="/jobs" element={<JobMatches />} />
+
+            <Route path="/profile" element={<Profile />} />
+
+            <Route path="/admin" element={<AdminDashboard />} />
+
+            <Route
+                path="/applications"
+                element={<MyApplications />}
+            />
+
+        </Routes>
+
+    );
+
 }
 
 export default App;

@@ -11,7 +11,7 @@ const resumeRoutes = require("./routes/resumeRoutes");
 const jobRoutes = require("./routes/jobRoutes");
 const adminRoutes=require("./routes/adminRoutes");
 const app = express();
-
+const applicationRoutes = require("./routes/applicationRoutes");
 connectDB();
 
 app.use(cors());
@@ -23,6 +23,7 @@ app.use("/api/resume", resumeRoutes);
 app.use("/api/gemini", geminiRoutes);
 app.use("/api/jobs", jobRoutes);
 app.use("/api/admin",adminRoutes);
+app.use("/api/application", applicationRoutes);
 app.listen(process.env.PORT, () => {
     console.log(`Server Started on Port ${process.env.PORT}`);
 });
