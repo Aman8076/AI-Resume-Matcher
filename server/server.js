@@ -12,11 +12,12 @@ const jobRoutes = require("./routes/jobRoutes");
 const adminRoutes=require("./routes/adminRoutes");
 const app = express();
 const applicationRoutes = require("./routes/applicationRoutes");
+const savedJobRoutes = require("./routes/savedJobRoutes");
 connectDB();
 
 app.use(cors());
 app.use(express.json());
-
+app.use("/uploads", express.static("uploads"));
 app.use("/api", apiRoutes);
 app.use("/api/auth", authRoutes);
 app.use("/api/resume", resumeRoutes);
@@ -24,6 +25,7 @@ app.use("/api/gemini", geminiRoutes);
 app.use("/api/jobs", jobRoutes);
 app.use("/api/admin",adminRoutes);
 app.use("/api/application", applicationRoutes);
+app.use("/api/saved-jobs", savedJobRoutes);
 app.listen(process.env.PORT, () => {
     console.log(`Server Started on Port ${process.env.PORT}`);
 });
