@@ -10,43 +10,96 @@ import SavedJobs from "./pages/SavedJobs";
 import MyApplications from "./pages/MyApplications";
 import Profile from "./pages/Profile";
 import AdminDashboard from "./pages/AdminDashboard";
+import NotFound from "./pages/NotFound";
+
+import ProtectedRoute from "./components/ProtectedRoute";
 
 function App() {
   return (
     <Routes>
-      {/* Authentication */}
+      {/* Public Routes */}
 
       <Route path="/" element={<Login />} />
 
       <Route path="/register" element={<Register />} />
 
-      {/* Dashboard */}
+      {/* Protected Routes */}
 
-      <Route path="/dashboard" element={<Dashboard />} />
+      <Route
+        path="/dashboard"
+        element={
+          <ProtectedRoute>
+            <Dashboard />
+          </ProtectedRoute>
+        }
+      />
 
-      {/* Resume */}
+      <Route
+        path="/upload"
+        element={
+          <ProtectedRoute>
+            <UploadResume />
+          </ProtectedRoute>
+        }
+      />
 
-      <Route path="/upload" element={<UploadResume />} />
+      <Route
+        path="/history"
+        element={
+          <ProtectedRoute>
+            <ResumeHistory />
+          </ProtectedRoute>
+        }
+      />
 
-      <Route path="/history" element={<ResumeHistory />} />
+      <Route
+        path="/jobs"
+        element={
+          <ProtectedRoute>
+            <JobMatches />
+          </ProtectedRoute>
+        }
+      />
 
-      {/* AI Jobs */}
+      <Route
+        path="/saved-jobs"
+        element={
+          <ProtectedRoute>
+            <SavedJobs />
+          </ProtectedRoute>
+        }
+      />
 
-      <Route path="/jobs" element={<JobMatches />} />
+      <Route
+        path="/applications"
+        element={
+          <ProtectedRoute>
+            <MyApplications />
+          </ProtectedRoute>
+        }
+      />
 
-      <Route path="/saved-jobs" element={<SavedJobs />} />
+      <Route
+        path="/profile"
+        element={
+          <ProtectedRoute>
+            <Profile />
+          </ProtectedRoute>
+        }
+      />
 
-      {/* Applications */}
+      <Route
+        path="/admin"
+        element={
+          <ProtectedRoute>
+            <AdminDashboard />
+          </ProtectedRoute>
+        }
+      />
 
-      <Route path="/applications" element={<MyApplications />} />
+      {/* 404 Page */}
 
-      {/* Profile */}
-
-      <Route path="/profile" element={<Profile />} />
-
-      {/* Admin */}
-
-      <Route path="/admin" element={<AdminDashboard />} />
+      <Route path="*" element={<NotFound />} />
     </Routes>
   );
 }
