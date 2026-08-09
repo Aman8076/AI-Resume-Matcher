@@ -4,81 +4,171 @@ import toast from "react-hot-toast";
 import Layout from "../components/Layout";
 
 function ResumeHistory() {
-  const [resumes, setResumes] = useState([]);
 
-  useEffect(() => {
-    fetchResumes();
-  }, []);
+    const [resumes, setResumes] = useState([]);
 
-  const fetchResumes = async () => {
-    try {
-      const res = await API.get("/resume/my-resumes");
+    useEffect(() => {
 
-      setResumes(res.data.resumes);
-    } catch {
-      toast.error("Unable to load resumes");
-    }
-  };
+        fetchResumes();
 
-  const deleteResume = async (id) => {
-    try {
-      await API.delete(`/resume/${id}`);
+    }, []);
 
-      toast.success("Resume Deleted");
+    const fetchResumes = async () => {
 
-      fetchResumes();
-    } catch {
-      toast.error("Delete Failed");
-    }
-  };
+        try {
 
-  return (
-    <Layout>
-      <div>
-        <h1 className="text-4xl font-bold mb-8">Resume History</h1>
+            const res = await API.get("/resume/my-resumes");
 
-        {resumes.map((resume) => (
-          <div key={resume._id} className="bg-white shadow rounded-xl p-6 mb-5">
-            <h2 className="text-2xl font-bold">{resume.filename}</h2>
+            setResumes(res.data.resumes);
 
-            <p className="mt-2">
-              ATS Score :<strong> {resume.atsScore}</strong>
-            </p>
+        }
 
-            <p className="text-gray-500 mt-2">
-              {new Date(resume.uploadedAt).toLocaleString()}
-            </p>
+        catch {
 
-            <div className="flex gap-4 mt-6">
-              <a
-                href={`http://localhost:5000/uploads/${resume.resumeUrl}`}
-                target="_blank"
-                rel="noreferrer"
-                className="bg-blue-600 text-white px-5 py-2 rounded"
-              >
-                View Resume
-              </a>
+            toast.error("Unable to load resumes");
 
-              <a
-                href={`http://localhost:5000/uploads/${resume.resumeUrl}`}
-                download
-                className="bg-green-600 text-white px-5 py-2 rounded"
-              >
-                Download
-              </a>
+        }
 
-              <button
-                onClick={() => deleteResume(resume._id)}
-                className="bg-red-600 text-white px-5 py-2 rounded"
-              >
-                Delete
-              </button>
+    };
+
+    const deleteResume = async (id) => {
+
+        try {
+
+            await API.delete(`/resume/${id}`);
+
+            toast.success("Resume Deleted");
+
+            fetchResumes();
+
+        }
+
+        catch {
+
+            toast.error("Delete Failed");
+
+        }
+
+    };
+
+    return (
+
+        <Layout>
+
+            <div>
+
+                <h1 className="text-4xl font-bold mb-8">
+
+                    Resume History
+
+                </h1>
+
+                {
+
+                    resumes.map((resume)=>(
+
+                        <div
+
+                            key={resume._id}
+
+                            className="bg-white shadow rounded-xl p-6 mb-5"
+
+                        >
+
+                            <h2 className="text-2xl font-bold">
+
+                                {resume.filename}
+
+                            </h2>
+
+                            <p className="mt-2">
+
+                                ATS Score :
+
+                                <strong>
+
+                                    {" "}
+
+                                    {resume.atsScore}
+
+                                </strong>
+
+                            </p>
+
+                            <p className="text-gray-500 mt-2">
+
+                                {
+
+                                    new Date(
+
+                                        resume.uploadedAt
+
+                                    ).toLocaleString()
+
+                                }
+
+                            </p>
+
+                            <div className="flex gap-4 mt-6">
+
+                                <a
+
+                                    href={`https://ai-resume-matcher-1-7xds.onrender.com/uploads/${resume.resumeUrl}`}
+                                    target="_blank"
+
+                                    rel="noreferrer"
+
+                                    className="bg-blue-600 text-white px-5 py-2 rounded"
+
+                                >
+
+                                    View Resume
+
+                                </a>
+
+                                <a
+
+                                href={`https://ai-resume-matcher-1-7xds.onrender.com/uploads/${resume.resumeUrl}`}
+                                    download
+
+                                    className="bg-green-600 text-white px-5 py-2 rounded"
+
+                                >
+
+                                    Download
+
+                                </a>
+
+                                <button
+
+                                    onClick={()=>
+
+                                        deleteResume(resume._id)
+
+                                    }
+
+                                    className="bg-red-600 text-white px-5 py-2 rounded"
+
+                                >
+
+                                    Delete
+
+                                </button>
+
+                            </div>
+
+                        </div>
+
+                    ))
+
+                }
+
             </div>
-          </div>
-        ))}
-      </div>
-    </Layout>
-  );
+
+        </Layout>
+
+    );
+
 }
 
 export default ResumeHistory;

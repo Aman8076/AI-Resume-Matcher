@@ -15,93 +15,99 @@ import NotFound from "./pages/NotFound";
 import ProtectedRoute from "./components/ProtectedRoute";
 
 function App() {
-  return (
-    <Routes>
-      {/* Public Routes */}
 
-      <Route path="/" element={<Login />} />
+    return (
 
-      <Route path="/register" element={<Register />} />
+        <Routes>
 
-      {/* Protected Routes */}
+            {/* Public Routes */}
 
-      <Route
-        path="/dashboard"
-        element={
-          <ProtectedRoute>
-            <Dashboard />
-          </ProtectedRoute>
-        }
-      />
+            <Route path="/" element={<Login />} />
 
-      <Route
-        path="/upload"
-        element={
-          <ProtectedRoute>
-            <UploadResume />
-          </ProtectedRoute>
-        }
-      />
+            <Route path="/register" element={<Register />} />
 
-      <Route
-        path="/history"
-        element={
-          <ProtectedRoute>
-            <ResumeHistory />
-          </ProtectedRoute>
-        }
-      />
+            {/* Protected Routes */}
 
-      <Route
-        path="/jobs"
-        element={
-          <ProtectedRoute>
-            <JobMatches />
-          </ProtectedRoute>
-        }
-      />
+            <Route
+                path="/dashboard"
+                element={
+                    <ProtectedRoute>
+                        <Dashboard />
+                    </ProtectedRoute>
+                }
+            />
 
-      <Route
-        path="/saved-jobs"
-        element={
-          <ProtectedRoute>
-            <SavedJobs />
-          </ProtectedRoute>
-        }
-      />
+            <Route
+                path="/upload"
+                element={
+                    <ProtectedRoute>
+                        <UploadResume />
+                    </ProtectedRoute>
+                }
+            />
 
-      <Route
-        path="/applications"
-        element={
-          <ProtectedRoute>
-            <MyApplications />
-          </ProtectedRoute>
-        }
-      />
+            <Route
+                path="/history"
+                element={
+                    <ProtectedRoute>
+                        <ResumeHistory />
+                    </ProtectedRoute>
+                }
+            />
 
-      <Route
-        path="/profile"
-        element={
-          <ProtectedRoute>
-            <Profile />
-          </ProtectedRoute>
-        }
-      />
+            <Route
+                path="/jobs"
+                element={
+                    <ProtectedRoute>
+                        <JobMatches />
+                    </ProtectedRoute>
+                }
+            />
 
-      <Route
-        path="/admin"
-        element={
-          <ProtectedRoute>
-            <AdminDashboard />
-          </ProtectedRoute>
-        }
-      />
+            <Route
+                path="/saved-jobs"
+                element={
+                    <ProtectedRoute>
+                        <SavedJobs />
+                    </ProtectedRoute>
+                }
+            />
 
-      {/* 404 Page */}
+            <Route
+                path="/applications"
+                element={
+                    <ProtectedRoute>
+                        <MyApplications />
+                    </ProtectedRoute>
+                }
+            />
 
-      <Route path="*" element={<NotFound />} />
-    </Routes>
-  );
+            <Route
+                path="/profile"
+                element={
+                    <ProtectedRoute>
+                        <Profile />
+                    </ProtectedRoute>
+                }
+            />
+
+            <Route
+                path="/admin"
+                element={
+                    <ProtectedRoute>
+                        <AdminDashboard />
+                    </ProtectedRoute>
+                }
+            />
+
+            {/* 404 Page */}
+
+            <Route path="*" element={<NotFound />} />
+
+        </Routes>
+
+    );
+
 }
 
 export default App;
