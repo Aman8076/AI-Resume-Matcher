@@ -120,8 +120,7 @@ function JobMatches() {
     // =========================
     const saveJob = async (job) => {
         try {
-            await API.post("/saved-jobs", job);
-
+            await API.post("/saved-jobs/save", job);
             toast.success("Job Saved Successfully");
         } catch (error) {
             toast.error(

@@ -2,7 +2,9 @@ const Job = require("../models/Job");
 const Resume = require("../models/Resume");
 const ai = require("../config/gemini");
 
+// =========================
 // Create Job
+// =========================
 const createJob = async (req, res) => {
     try {
 
@@ -40,9 +42,11 @@ const createJob = async (req, res) => {
     }
 };
 
-// Get All Jobs
-const getAllJobs = async (req, res) => {
 
+// =========================
+// Get All Jobs
+// =========================
+const getAllJobs = async (req, res) => {
     try {
 
         const jobs = await Job.find().sort({
@@ -63,12 +67,13 @@ const getAllJobs = async (req, res) => {
         });
 
     }
-
 };
 
-// Get Job By ID
-const getJobById = async (req, res) => {
 
+// =========================
+// Get Job By ID
+// =========================
+const getJobById = async (req, res) => {
     try {
 
         const job = await Job.findById(req.params.id);
@@ -93,14 +98,16 @@ const getJobById = async (req, res) => {
         });
 
     }
-
 };
 
-// Match Resume with Jobs
-const matchJobs = async (req, res) => {
 
+// =========================
+// Match Resume With Jobs
+// =========================
+const matchJobs = async (req, res) => {
     try {
 
+        // Find latest resume of logged-in user
         const resume = await Resume.findOne({
             user: req.user.id,
         }).sort({
@@ -114,6 +121,8 @@ const matchJobs = async (req, res) => {
             });
         }
 
+
+        // Get all jobs
         const jobs = await Job.find();
 
         if (jobs.length === 0) {
@@ -123,116 +132,231 @@ const matchJobs = async (req, res) => {
             });
         }
 
-        let matchedJobs = [];
 
-        for (const job of jobs) {
+        // Prepare jobs data for Gemini
+        const jobsData = jobs.map((job) => ({
+            jobId: job._id.toString(),
+            title: job.title,
+            company: job.company,
+            location: job.location,
+            description: job.description,
+            skills: job.skills,
+        }));
 
-            const prompt = `
+
+        // =========================
+        // ONE GEMINI REQUEST
+        // =========================
+
+        const prompt = `
 You are an ATS Resume Matcher.
 
-Resume Analysis:
-${resume.analysis}
+Analyze the resume and compare it with ALL jobs.
 
-Job Title:
-${job.title}
+RESUME:
+${JSON.stringify(resume.parsedData)}
 
-Company:
-${job.company}
+JOBS:
+${JSON.stringify(jobsData)}
 
-Location:
-${job.location}
+For every job calculate a match percentage from 0 to 100.
 
-Job Description:
-${job.description}
+Consider:
 
-Required Skills:
-${job.skills.join(", ")}
-
-Compare the resume with the job.
+1. Technical skills
+2. Required skills
+3. Experience
+4. Job requirements
+5. Resume strengths
+6. Overall suitability
 
 Return ONLY valid JSON.
 
+Do NOT use markdown.
+Do NOT use \`\`\`json.
+Do NOT include any explanation outside JSON.
+
+Use exactly this structure:
+
 {
-  "matchPercentage": 90,
-  "reason": "Candidate has strong MERN Stack skills and meets most requirements."
+    "matches": [
+        {
+            "jobId": "job id",
+            "matchPercentage": 90,
+            "reason": "Short explanation of why the candidate matches this job."
+        }
+    ]
 }
 `;
 
-            const result = await ai.models.generateContent({
-                model: "gemini-flash-latest",
-                contents: prompt,
+
+        // Call Gemini only ONCE
+        const result = await ai.models.generateContent({
+            model: "gemini-flash-latest",
+            contents: prompt,
+        });
+
+
+        const aiResponse =
+            result.text ||
+            result.response?.text() ||
+            "";
+
+
+        if (!aiResponse) {
+            return res.status(500).json({
+                success: false,
+                message: "Empty response from Gemini.",
             });
+        }
 
-            const aiResponse =
-                result.text ||
-                result.response?.text() ||
-                "";
 
-            let parsedResponse;
+        // =========================
+        // Parse Gemini Response
+        // =========================
 
-            try {
+        let parsedResponse;
 
-                parsedResponse = JSON.parse(aiResponse);
+        try {
 
-            } catch {
+            parsedResponse = JSON.parse(aiResponse);
 
-                parsedResponse = {
-                    matchPercentage: 0,
-                    reason: "Unable to parse AI response."
-                };
+        } catch (error) {
 
-            }
+            console.log("Gemini Raw Response:");
+            console.log(aiResponse);
 
-            matchedJobs.push({
-
-                jobId: job._id,
-
-                title: job.title,
-
-                company: job.company,
-
-                location: job.location,
-
-                matchPercentage: parsedResponse.matchPercentage,
-
-                reason: parsedResponse.reason,
-
+            return res.status(500).json({
+                success: false,
+                message: "Unable to parse AI response.",
             });
 
         }
 
+
+        // Check matches
+        if (
+            !parsedResponse.matches ||
+            !Array.isArray(parsedResponse.matches)
+        ) {
+
+            return res.status(500).json({
+                success: false,
+                message: "Invalid AI response format.",
+            });
+
+        }
+
+
+        // =========================
+        // Combine AI Results
+        // With Job Information
+        // =========================
+
+        const matchedJobs = parsedResponse.matches
+            .map((match) => {
+
+                const job = jobs.find(
+                    (job) =>
+                        job._id.toString() ===
+                        String(match.jobId)
+                );
+
+
+                // If Gemini returns invalid job ID
+                if (!job) {
+                    return null;
+                }
+
+
+                return {
+
+                    jobId: job._id,
+
+                    title: job.title,
+
+                    company: job.company,
+
+                    location: job.location,
+
+                    matchPercentage: Math.min(
+                        100,
+                        Math.max(
+                            0,
+                            Number(match.matchPercentage) || 0
+                        )
+                    ),
+
+                    reason:
+                        match.reason ||
+                        "No reason provided.",
+
+                };
+
+            })
+            .filter(Boolean);
+
+
+        // =========================
+        // Sort By Match Percentage
+        // =========================
+
         matchedJobs.sort((a, b) => {
 
-            return b.matchPercentage - a.matchPercentage;
+            return (
+                b.matchPercentage -
+                a.matchPercentage
+            );
 
         });
+
+
+        // =========================
+        // Final Response
+        // =========================
 
         res.status(200).json({
 
             success: true,
 
-            totalMatches: matchedJobs.length,
+            totalMatches:
+                matchedJobs.length,
 
-            bestMatches: matchedJobs.slice(0, 5),
+            bestMatches:
+                matchedJobs.slice(0, 5),
 
         });
+
 
     } catch (error) {
 
+        console.error("Job Matching Error:");
         console.error(error);
 
         res.status(500).json({
+
             success: false,
+
             message: error.message,
+
         });
 
     }
-
 };
 
+
+// =========================
+// Export Controllers
+// =========================
+
 module.exports = {
+
     createJob,
+
     getAllJobs,
+
     getJobById,
+
     matchJobs,
+
 };

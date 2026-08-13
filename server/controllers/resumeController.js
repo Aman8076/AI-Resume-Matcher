@@ -273,18 +273,27 @@ ${resumeText}
         // -------------------------------------------------
         // Convert Gemini Response To JSON
         // -------------------------------------------------
-        const parsedResume = JSON.parse(result);
+      const parsedResume = JSON.parse(result);
 
+// Save parsed resume data in MongoDB
+const resume = await Resume.findOneAndUpdate(
+    {
+        user: req.user.id,
+    },
+    {
+        parsedData: parsedResume,
+    },
+    {
+        new: true,
+        sort: { uploadedAt: -1 },
+    }
+);
 
-        // =================================================
-        // SEND RESULT
-        // =================================================
-
-        res.status(200).json({
-            success: true,
-            message: "Resume Parsed Successfully",
-            data: parsedResume,
-        });
+res.status(200).json({
+    success: true,
+    message: "Resume Parsed Successfully",
+    data: parsedResume,
+});
 
 
     } catch (error) {
