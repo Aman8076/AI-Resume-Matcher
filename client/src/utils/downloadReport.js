@@ -20,8 +20,25 @@ const downloadReport = (resume) => {
 
     doc.text(`Filename : ${resume.filename}`, 20, 50);
 
-    doc.text(`ATS Score : ${resume.atsScore}/100`, 20, 60);
+    let status = "";
 
+if (resume.atsScore >= 90)
+    status = "Excellent";
+
+else if (resume.atsScore >= 80)
+    status = "Very Good";
+
+else if (resume.atsScore >= 70)
+    status = "Good";
+
+else
+    status = "Needs Improvement";
+
+doc.text(
+    `ATS Score : ${resume.atsScore}/100 (${status})`,
+    20,
+    60
+);
     doc.text(
         `Generated : ${new Date().toLocaleString()}`,
         20,

@@ -1,526 +1,1733 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import API from "../services/api";
 import toast from "react-hot-toast";
 import Layout from "../components/Layout";
-import SkeletonCard from "../components/SkeletonCard";
+
 
 function JobMatches() {
-    const [jobs, setJobs] = useState([]);
-    const [loading, setLoading] = useState(true);
-
-    // AI Job Matching states
-    const [jobDescription, setJobDescription] = useState("");
-    const [matchResult, setMatchResult] = useState(null);
-    const [matching, setMatching] = useState(false);
 
     const navigate = useNavigate();
 
+
+    const [jobs, setJobs] =
+        useState([]);
+
+
+    const [loading, setLoading] =
+        useState(true);
+
+
+    const [error, setError] =
+        useState("");
+
+
+    const [savingJob, setSavingJob] =
+        useState(null);
+
+
+    const [savedJobs, setSavedJobs] =
+        useState([]);
+
+
+    // =====================================================
+    // FILTER + SORT
+    // =====================================================
+
+    const [matchFilter, setMatchFilter] =
+        useState("all");
+
+
+    const [sortOption, setSortOption] =
+        useState("highest");
+
+
+    // =====================================================
+    // PREVENT DUPLICATE INITIAL API CALL
+    // =====================================================
+
+    const hasFetched =
+        useRef(false);
+
+
+    const hasFetchedSaved =
+        useRef(false);
+
+
+    // =====================================================
+    // FETCH JOB MATCHES ONCE
+    // =====================================================
+
     useEffect(() => {
-        fetchJobs();
+
+        if (
+            hasFetched.current
+        ) {
+
+            return;
+
+        }
+
+
+        hasFetched.current =
+            true;
+
+
+        fetchJobMatches();
+
     }, []);
 
-    const fetchJobs = async () => {
-        try {
-            const res = await API.get("/jobs/match");
 
-            setJobs(res.data.bestMatches || []);
-        } catch (error) {
-            console.log(error);
+    // =====================================================
+    // FETCH JOB MATCHES
+    // =====================================================
 
-            toast.error(
-                error.response?.data?.message ||
-                "Unable to load job matches"
-            );
-        } finally {
-            setLoading(false);
-        }
-    };
+    const fetchJobMatches =
+        async () => {
 
-    // =========================
-    // AI Resume Job Matching
-    // =========================
-    const analyzeJob = async () => {
-        if (!jobDescription.trim()) {
-            toast.error("Please enter a job description");
-            return;
-        }
+            try {
 
-        try {
-            setMatching(true);
-            setMatchResult(null);
+                setLoading(true);
 
-            /*
-             * For now we use the resume text entered below.
-             * Later we can automatically fetch the user's
-             * latest parsed resume from MongoDB.
-             */
-            const resumeText = `
-                Anamika Kumari
-                B.Tech Electronics and Communication Engineering
-                Skills:
-                C, C++, JavaScript, Python, SQL,
-                HTML5, CSS3, React.js, Node.js,
-                Express.js, MongoDB, Postman,
-                VS Code, GitHub, React Router,
-                Context API, Local Storage,
-                Data Structures and Algorithms,
-                Operating Systems,
-                Digital Signal Processing
-            `;
+                setError("");
 
-            const res = await API.post("/job-match/match", {
-                resumeText,
-                jobDescription,
-            });
 
-            if (res.data.success) {
-                setMatchResult(res.data.data);
+                const res =
+                    await API.post(
+                        "/job-match/match"
+                    );
 
-                toast.success("Resume Matched Successfully");
+
+                const matches =
+                    res.data?.bestMatches ||
+                    res.data?.matches ||
+                    res.data?.jobMatches ||
+                    [];
+
+
+                setJobs(
+
+                    Array.isArray(matches)
+
+                        ? matches
+
+                        : []
+
+                );
+
+
+            } catch (error) {
+
+                const message =
+                    error.response?.data?.message ||
+                    "Unable to load job matches.";
+
+
+                setError(
+                    message
+                );
+
+
+                toast.error(
+                    message
+                );
+
+
+            } finally {
+
+                setLoading(false);
+
             }
-        } catch (error) {
-            console.log("AI Matching Error:", error);
 
-            toast.error(
-                error.response?.data?.message ||
-                "Unable to analyze job"
-            );
-        } finally {
-            setMatching(false);
+        };
+
+
+    // =====================================================
+    // GET JOB ID
+    // =====================================================
+
+    const getJobId =
+        (job) => {
+
+            if (!job) {
+
+                return null;
+
+            }
+
+
+            if (job.jobId) {
+
+                return job.jobId;
+
+            }
+
+
+            if (job._id) {
+
+                return job._id;
+
+            }
+
+
+            if (job.id) {
+
+                return job.id;
+
+            }
+
+
+            if (
+                job.job?.jobId
+            ) {
+
+                return job.job.jobId;
+
+            }
+
+
+            if (
+                job.job?._id
+            ) {
+
+                return job.job._id;
+
+            }
+
+
+            if (
+                job.job?.id
+            ) {
+
+                return job.job.id;
+
+            }
+
+
+            return null;
+
+        };
+
+
+    // =====================================================
+    // FETCH SAVED JOBS
+    // =====================================================
+
+    const fetchSavedJobs =
+        async () => {
+
+            try {
+
+                const res =
+                    await API.get(
+                        "/saved-jobs"
+                    );
+
+
+                const saved =
+                    res.data?.savedJobs ||
+                    res.data?.jobs ||
+                    [];
+
+
+                if (
+                    Array.isArray(saved)
+                ) {
+
+                    const ids =
+                        saved
+
+                            .map(
+
+                                (item) =>
+
+                                    item.job?._id ||
+                                    item.jobId ||
+                                    item.job?.jobId ||
+                                    item.job?._id ||
+                                    null
+
+                            )
+
+                            .filter(Boolean)
+
+                            .map(
+                                String
+                            );
+
+
+                    setSavedJobs(
+                        ids
+                    );
+
+                } else {
+
+                    setSavedJobs([]);
+
+                }
+
+
+            } catch (error) {
+
+                setSavedJobs([]);
+
+            }
+
+        };
+
+
+    // =====================================================
+    // FETCH SAVED JOBS ONCE
+    // =====================================================
+
+    useEffect(() => {
+
+        if (
+            hasFetchedSaved.current
+        ) {
+
+            return;
+
         }
-    };
 
-    // =========================
-    // Apply Job
-    // =========================
-    const applyJob = async (job) => {
-        try {
-            await API.post("/application/apply", {
-                company: job.company,
-                position: job.title,
-                location: job.location,
-                salary: job.salary || "Not Disclosed",
-                jobType: job.jobType || "Full Time",
-            });
 
-            toast.success("Application Submitted Successfully");
+        hasFetchedSaved.current =
+            true;
 
-            navigate("/applications");
-        } catch (error) {
-            toast.error(
-                error.response?.data?.message ||
-                "Unable to Apply"
+
+        fetchSavedJobs();
+
+    }, []);
+
+
+    // =====================================================
+    // CHECK SAVED
+    // =====================================================
+
+    const isJobSaved =
+        (job) => {
+
+            const jobId =
+                getJobId(
+                    job
+                );
+
+
+            if (!jobId) {
+
+                return false;
+
+            }
+
+
+            return savedJobs.includes(
+                String(jobId)
             );
-        }
-    };
 
-    // =========================
-    // Save Job
-    // =========================
-    const saveJob = async (job) => {
-        try {
-            await API.post("/saved-jobs/save", job);
-            toast.success("Job Saved Successfully");
-        } catch (error) {
-            toast.error(
-                error.response?.data?.message ||
-                "Unable to Save Job"
+        };
+
+
+    // =====================================================
+    // SAVE JOB
+    // =====================================================
+
+    const saveJob =
+        async (job) => {
+
+            try {
+
+                const jobId =
+                    getJobId(
+                        job
+                    );
+
+
+                if (!jobId) {
+
+                    toast.error(
+                        "Job ID is missing. Cannot save this job."
+                    );
+
+                    return;
+
+                }
+
+
+                if (
+                    isJobSaved(job)
+                ) {
+
+                    toast(
+                        "Job is already saved."
+                    );
+
+                    return;
+
+                }
+
+
+                setSavingJob(
+                    String(jobId)
+                );
+
+
+                const payload = {
+
+                    jobId:
+
+                        jobId,
+
+
+                    title:
+
+                        job.title ||
+                        job.job?.title ||
+                        "Untitled Job",
+
+
+                    company:
+
+                        job.company ||
+                        job.job?.company ||
+                        "Unknown Company",
+
+
+                    location:
+
+                        job.location ||
+                        job.job?.location ||
+                        "",
+
+
+                    matchPercentage:
+
+                        Number(
+                            job.matchPercentage
+                        ) || 0,
+
+
+                    reason:
+
+                        job.reason ||
+                        job.analysis ||
+                        "",
+
+
+                    matchingSkills:
+
+                        Array.isArray(
+                            job.matchingSkills
+                        )
+
+                            ? job.matchingSkills
+
+                            : [],
+
+
+                    missingSkills:
+
+                        Array.isArray(
+                            job.missingSkills
+                        )
+
+                            ? job.missingSkills
+
+                            : [],
+
+
+                    missingKeywords:
+
+                        Array.isArray(
+                            job.missingKeywords
+                        )
+
+                            ? job.missingKeywords
+
+                            : [],
+
+
+                    suggestions:
+
+                        Array.isArray(
+                            job.suggestions
+                        )
+
+                            ? job.suggestions
+
+                            : [],
+
+
+                    recommendations:
+
+                        Array.isArray(
+                            job.recommendations
+                        )
+
+                            ? job.recommendations
+
+                            : []
+
+                };
+
+
+                const response =
+                    await API.post(
+
+                        "/saved-jobs/save",
+
+                        payload
+
+                    );
+
+
+                setSavedJobs(
+
+                    previous => [
+
+                        ...new Set([
+
+                            ...previous,
+
+                            String(jobId)
+
+                        ])
+
+                    ]
+
+                );
+
+
+                toast.success(
+
+                    response.data?.message ||
+
+                    "Job saved successfully!"
+
+                );
+
+
+            } catch (error) {
+
+                const message =
+                    error.response?.data?.message ||
+                    "Unable to save job.";
+
+
+                toast.error(
+                    message
+                );
+
+
+            } finally {
+
+                setSavingJob(
+                    null
+                );
+
+            }
+
+        };
+
+
+    // =====================================================
+    // VIEW JOB
+    // =====================================================
+
+    const viewJob =
+        (job) => {
+
+            const jobId =
+                getJobId(
+                    job
+                );
+
+
+            if (!jobId) {
+
+                toast.error(
+                    "Job ID is missing."
+                );
+
+                return;
+
+            }
+
+
+            navigate(
+                `/jobs/${jobId}`
             );
-        }
-    };
+
+        };
+
+
+    // =====================================================
+    // MATCH COLOR
+    // =====================================================
+
+    const getMatchColor =
+        (percentage) => {
+
+            if (
+                percentage >= 80
+            ) {
+
+                return "text-green-600 bg-green-50 border-green-200";
+
+            }
+
+
+            if (
+                percentage >= 60
+            ) {
+
+                return "text-yellow-600 bg-yellow-50 border-yellow-200";
+
+            }
+
+
+            return "text-red-600 bg-red-50 border-red-200";
+
+        };
+
+
+    // =====================================================
+    // FILTER JOBS
+    // =====================================================
+
+    const filteredJobs =
+        jobs.filter(
+            (job) => {
+
+                const percentage =
+                    Number(
+                        job.matchPercentage
+                    ) || 0;
+
+
+                if (
+                    matchFilter === "80"
+                ) {
+
+                    return (
+                        percentage >= 80
+                    );
+
+                }
+
+
+                if (
+                    matchFilter === "60"
+                ) {
+
+                    return (
+
+                        percentage >= 60 &&
+                        percentage < 80
+
+                    );
+
+                }
+
+
+                if (
+                    matchFilter === "below60"
+                ) {
+
+                    return (
+                        percentage < 60
+                    );
+
+                }
+
+
+                return true;
+
+            }
+        );
+
+
+    // =====================================================
+    // SORT JOBS
+    // =====================================================
+
+    const sortedJobs =
+        [...filteredJobs].sort(
+            (a, b) => {
+
+                const scoreA =
+                    Number(
+                        a.matchPercentage
+                    ) || 0;
+
+
+                const scoreB =
+                    Number(
+                        b.matchPercentage
+                    ) || 0;
+
+
+                if (
+                    sortOption === "highest"
+                ) {
+
+                    return (
+                        scoreB -
+                        scoreA
+                    );
+
+                }
+
+
+                if (
+                    sortOption === "lowest"
+                ) {
+
+                    return (
+                        scoreA -
+                        scoreB
+                    );
+
+                }
+
+
+                if (
+                    sortOption === "az"
+                ) {
+
+                    return (
+
+                        (
+                            a.title ||
+                            a.job?.title ||
+                            ""
+
+                        )
+                            .toLowerCase()
+                            .localeCompare(
+
+                                (
+
+                                    b.title ||
+                                    b.job?.title ||
+                                    ""
+
+                                )
+                                    .toLowerCase()
+
+                            )
+
+                    );
+
+                }
+
+
+                if (
+                    sortOption === "za"
+                ) {
+
+                    return (
+
+                        (
+                            b.title ||
+                            b.job?.title ||
+                            ""
+
+                        )
+                            .toLowerCase()
+                            .localeCompare(
+
+                                (
+
+                                    a.title ||
+                                    a.job?.title ||
+                                    ""
+
+                                )
+                                    .toLowerCase()
+
+                            )
+
+                    );
+
+                }
+
+
+                return 0;
+
+            }
+        );
+
+
+    // =====================================================
+    // LOADING
+    // =====================================================
 
     if (loading) {
+
         return (
+
             <Layout>
-                <div className="grid md:grid-cols-2 gap-6">
-                    <SkeletonCard />
-                    <SkeletonCard />
-                    <SkeletonCard />
-                    <SkeletonCard />
+
+                <div className="min-h-[60vh] flex items-center justify-center">
+
+                    <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-10 text-center w-full max-w-md">
+
+                        <div className="text-5xl mb-4">
+                            🤖
+                        </div>
+
+
+                        <h2 className="text-xl font-semibold text-gray-700">
+                            Finding your best job matches...
+                        </h2>
+
+
+                        <p className="text-gray-500 mt-2">
+                            AI is comparing your resume with available jobs.
+                        </p>
+
+                    </div>
+
                 </div>
+
             </Layout>
+
         );
+
     }
 
+
+    // =====================================================
+    // ERROR
+    // =====================================================
+
+    if (error) {
+
+        return (
+
+            <Layout>
+
+                <div className="max-w-5xl mx-auto">
+
+                    <div className="bg-red-50 border border-red-200 rounded-2xl p-6">
+
+                        <div className="flex items-start gap-4">
+
+                            <div className="text-3xl">
+                                ⚠️
+                            </div>
+
+
+                            <div className="flex-1">
+
+                                <h2 className="text-lg font-semibold text-red-700">
+                                    Unable to load job matches
+                                </h2>
+
+
+                                <p className="text-red-600 mt-2">
+                                    {error}
+                                </p>
+
+
+                                <button
+                                    onClick={() => {
+
+                                        fetchJobMatches();
+
+                                    }}
+                                    className="mt-4 px-5 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition"
+                                >
+                                    Try Again
+                                </button>
+
+                            </div>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+            </Layout>
+
+        );
+
+    }
+
+
     return (
+
         <Layout>
-            <div>
 
-                {/* ========================= */}
-                {/* PAGE TITLE */}
-                {/* ========================= */}
+            <div className="max-w-6xl mx-auto">
 
-                <h1 className="text-4xl font-bold mb-8 dark:text-white">
-                    AI Job Matches
-                </h1>
+                {/* =================================================
+                    HEADER
+                ================================================= */}
+
+                <div className="mb-8">
+
+                    <h1 className="text-4xl font-bold text-gray-800">
+                        Job Matches
+                    </h1>
 
 
-                {/* ========================= */}
-                {/* AI JOB MATCHING */}
-                {/* ========================= */}
-
-                <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 mb-8">
-
-                    <h2 className="text-2xl font-bold dark:text-white mb-4">
-                        🤖 AI Resume Job Matcher
-                    </h2>
-
-                    <p className="text-gray-600 dark:text-gray-300 mb-4">
-                        Paste a job description below and Gemini AI
-                        will compare it with your resume.
+                    <p className="text-gray-500 mt-2">
+                        Jobs ranked according to how well they match your resume.
                     </p>
-
-                    <textarea
-                        value={jobDescription}
-                        onChange={(e) =>
-                            setJobDescription(e.target.value)
-                        }
-                        placeholder="Paste the job description here..."
-                        rows="8"
-                        className="w-full border border-gray-300 dark:border-gray-600 rounded-lg p-4 dark:bg-gray-700 dark:text-white"
-                    />
-
-                    <button
-                        onClick={analyzeJob}
-                        disabled={matching}
-                        className="mt-4 bg-purple-600 hover:bg-purple-700 disabled:bg-gray-400 text-white px-6 py-3 rounded-lg font-semibold"
-                    >
-                        {matching
-                            ? "Analyzing..."
-                            : "Analyze Resume Match"}
-                    </button>
 
                 </div>
 
 
-                {/* ========================= */}
-                {/* AI RESULT */}
-                {/* ========================= */}
-
-                {matchResult && (
-                    <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 mb-8">
-
-                        <h2 className="text-2xl font-bold dark:text-white mb-6">
-                            📊 AI Resume Analysis
-                        </h2>
-
-
-                        {/* MATCH SCORE */}
-
-                        <div className="text-center mb-8">
-
-                            <p className="text-gray-500 dark:text-gray-300">
-                                Resume Match Score
-                            </p>
-
-                            <p className="text-6xl font-bold text-purple-600 mt-2">
-                                {matchResult.matchScore}%
-                            </p>
-
-                        </div>
-
-
-                        {/* MATCHING SKILLS */}
-
-                        <div className="mb-6">
-
-                            <h3 className="text-xl font-bold dark:text-white mb-3">
-                                ✅ Matching Skills
-                            </h3>
-
-                            <div className="flex flex-wrap gap-2">
-
-                                {matchResult.matchingSkills?.map(
-                                    (skill, index) => (
-                                        <span
-                                            key={index}
-                                            className="bg-green-100 text-green-800 px-3 py-2 rounded-full"
-                                        >
-                                            {skill}
-                                        </span>
-                                    )
-                                )}
-
-                            </div>
-
-                        </div>
-
-
-                        {/* MISSING SKILLS */}
-
-                        <div className="mb-6">
-
-                            <h3 className="text-xl font-bold dark:text-white mb-3">
-                                ⚠️ Missing Skills
-                            </h3>
-
-                            <div className="flex flex-wrap gap-2">
-
-                                {matchResult.missingSkills?.map(
-                                    (skill, index) => (
-                                        <span
-                                            key={index}
-                                            className="bg-red-100 text-red-800 px-3 py-2 rounded-full"
-                                        >
-                                            {skill}
-                                        </span>
-                                    )
-                                )}
-
-                            </div>
-
-                        </div>
-
-
-                        {/* MISSING KEYWORDS */}
-
-                        <div className="mb-6">
-
-                            <h3 className="text-xl font-bold dark:text-white mb-3">
-                                🔎 Missing Keywords
-                            </h3>
-
-                            <ul className="list-disc ml-6 dark:text-gray-200">
-
-                                {matchResult.missingKeywords?.map(
-                                    (keyword, index) => (
-                                        <li key={index}>
-                                            {keyword}
-                                        </li>
-                                    )
-                                )}
-
-                            </ul>
-
-                        </div>
-
-
-                        {/* SUGGESTIONS */}
-
-                        <div className="mb-6">
-
-                            <h3 className="text-xl font-bold dark:text-white mb-3">
-                                💡 Suggestions
-                            </h3>
-
-                            <ul className="list-disc ml-6 dark:text-gray-200">
-
-                                {matchResult.suggestions?.map(
-                                    (suggestion, index) => (
-                                        <li
-                                            key={index}
-                                            className="mb-2"
-                                        >
-                                            {suggestion}
-                                        </li>
-                                    )
-                                )}
-
-                            </ul>
-
-                        </div>
-
-
-                        {/* RECOMMENDATIONS */}
-
-                        <div>
-
-                            <h3 className="text-xl font-bold dark:text-white mb-3">
-                                🚀 Recommendations
-                            </h3>
-
-                            <ul className="list-disc ml-6 dark:text-gray-200">
-
-                                {matchResult.recommendations?.map(
-                                    (recommendation, index) => (
-                                        <li
-                                            key={index}
-                                            className="mb-2"
-                                        >
-                                            {recommendation}
-                                        </li>
-                                    )
-                                )}
-
-                            </ul>
-
-                        </div>
-
-                    </div>
-                )}
-
-
-                {/* ========================= */}
-                {/* EXISTING JOB MATCHES */}
-                {/* ========================= */}
+                {/* =================================================
+                    FILTER + SORT
+                ================================================= */}
 
                 {jobs.length > 0 && (
-                    <div className="grid md:grid-cols-3 gap-6 mb-8">
 
-                        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 transition duration-300 hover:scale-105 hover:shadow-2xl">
+                    <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5 mb-8">
 
-                            <h2 className="text-gray-500 dark:text-gray-300">
-                                Total Matches
-                            </h2>
+                        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
 
-                            <p className="text-4xl font-bold mt-3 dark:text-white">
-                                {jobs.length}
-                            </p>
+                            {/* FILTER */}
 
-                        </div>
+                            <div>
 
-
-                        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 transition duration-300 hover:scale-105 hover:shadow-2xl">
-
-                            <h2 className="text-gray-500 dark:text-gray-300">
-                                Best Match
-                            </h2>
-
-                            <p className="text-4xl font-bold text-green-600 mt-3">
-                                {jobs[0].matchPercentage}%
-                            </p>
-
-                        </div>
+                                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                                    Filter by Match
+                                </label>
 
 
-                        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 transition duration-300 hover:scale-105 hover:shadow-2xl">
+                                <select
+                                    value={
+                                        matchFilter
+                                    }
+                                    onChange={(e) => {
 
-                            <h2 className="text-gray-500 dark:text-gray-300">
-                                Top Company
-                            </h2>
+                                        setMatchFilter(
+                                            e.target.value
+                                        );
 
-                            <p className="text-2xl font-bold mt-3 dark:text-white">
-                                {jobs[0].company}
-                            </p>
+                                    }}
+                                    className="border border-gray-300 rounded-lg px-4 py-2 bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                >
+
+                                    <option value="all">
+                                        All Matches
+                                    </option>
+
+                                    <option value="80">
+                                        80% and above
+                                    </option>
+
+                                    <option value="60">
+                                        60% - 79%
+                                    </option>
+
+                                    <option value="below60">
+                                        Below 60%
+                                    </option>
+
+                                </select>
+
+                            </div>
+
+
+                            {/* SORT */}
+
+                            <div>
+
+                                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                                    Sort Jobs
+                                </label>
+
+
+                                <select
+                                    value={
+                                        sortOption
+                                    }
+                                    onChange={(e) => {
+
+                                        setSortOption(
+                                            e.target.value
+                                        );
+
+                                    }}
+                                    className="border border-gray-300 rounded-lg px-4 py-2 bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                >
+
+                                    <option value="highest">
+                                        Highest Match
+                                    </option>
+
+                                    <option value="lowest">
+                                        Lowest Match
+                                    </option>
+
+                                    <option value="az">
+                                        Job Title A-Z
+                                    </option>
+
+                                    <option value="za">
+                                        Job Title Z-A
+                                    </option>
+
+                                </select>
+
+                            </div>
+
+
+                            {/* RESULT COUNT */}
+
+                            <div className="text-sm text-gray-500">
+
+                                Showing{" "}
+
+                                <span className="font-semibold text-gray-800">
+                                    {
+                                        sortedJobs.length
+                                    }
+                                </span>
+
+                                {" "}of{" "}
+
+                                <span className="font-semibold text-gray-800">
+                                    {
+                                        jobs.length
+                                    }
+                                </span>
+
+                                {" "}jobs
+
+                            </div>
 
                         </div>
 
                     </div>
+
                 )}
 
 
-                {/* ========================= */}
-                {/* JOB LIST */}
-                {/* ========================= */}
+                {/* =================================================
+                    EMPTY AFTER FILTER
+                ================================================= */}
 
-                {jobs.length === 0 ? (
+                {jobs.length > 0 &&
+                sortedJobs.length === 0 ? (
 
-                    <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-8 text-center">
+                    <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-10 text-center">
 
-                        <h2 className="text-2xl font-bold dark:text-white">
-                            No Matching Jobs Found
+                        <div className="text-6xl mb-5">
+                            🔍
+                        </div>
+
+
+                        <h2 className="text-2xl font-bold text-gray-800">
+                            No Jobs Match This Filter
                         </h2>
+
+
+                        <p className="text-gray-500 mt-2">
+                            Try selecting a different match range.
+                        </p>
+
+
+                        <button
+                            onClick={() => {
+
+                                setMatchFilter(
+                                    "all"
+                                );
+
+                            }}
+                            className="mt-5 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
+                        >
+                            Show All Jobs
+                        </button>
+
+                    </div>
+
+                ) : jobs.length === 0 ? (
+
+                    /* =================================================
+                       EMPTY STATE
+                    ================================================= */
+
+                    <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-10 text-center">
+
+                        <div className="text-6xl mb-5">
+                            🔍
+                        </div>
+
+
+                        <h2 className="text-2xl font-bold text-gray-800">
+                            No Job Matches Found
+                        </h2>
+
+
+                        <p className="text-gray-500 mt-2">
+                            We couldn't find any jobs matching your resume.
+                        </p>
+
+
+                        <button
+                            onClick={() => {
+
+                                fetchJobMatches();
+
+                            }}
+                            className="mt-5 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
+                        >
+                            Refresh Matches
+                        </button>
 
                     </div>
 
                 ) : (
 
-                    <div className="space-y-6">
+                    /* =================================================
+                       JOB LIST
+                    ================================================= */
 
-                        {jobs.map((job, index) => (
+                    <div className="space-y-8">
 
-                            <div
-                                key={index}
-                                className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 transition duration-300 hover:scale-105 hover:shadow-2xl"
-                            >
+                        {sortedJobs.map(
+                            (
+                                job,
+                                index
+                            ) => {
 
-                                <div className="flex justify-between items-start">
-
-                                    <div>
-
-                                        <h2 className="text-2xl font-bold dark:text-white">
-                                            {job.title}
-                                        </h2>
-
-                                        <p className="text-gray-500 mt-2">
-                                            {job.company}
-                                        </p>
-
-                                        <p className="text-gray-500">
-                                            {job.location}
-                                        </p>
-
-                                    </div>
-
-                                    {index === 0 && (
-                                        <span className="bg-yellow-400 text-black px-4 py-2 rounded-full font-bold">
-                                            🏆 Best Match
-                                        </span>
-                                    )}
-
-                                </div>
+                                const jobId =
+                                    getJobId(
+                                        job
+                                    );
 
 
-                                <div className="mt-6">
-
-                                    <div className="flex justify-between mb-2">
-
-                                        <span className="font-medium dark:text-white">
-                                            Match Percentage
-                                        </span>
-
-                                        <span className="font-bold dark:text-white">
-                                            {job.matchPercentage}%
-                                        </span>
-
-                                    </div>
+                                const matchPercentage =
+                                    Number(
+                                        job.matchPercentage
+                                    ) || 0;
 
 
-                                    <div className="w-full bg-gray-200 rounded-full h-4">
+                                const matchingSkills =
+                                    Array.isArray(
+                                        job.matchingSkills
+                                    )
 
-                                        <div
-                                            className={`h-4 rounded-full ${
-                                                job.matchPercentage >= 80
-                                                    ? "bg-green-500"
-                                                    : job.matchPercentage >= 60
-                                                    ? "bg-yellow-500"
-                                                    : "bg-red-500"
-                                            }`}
-                                            style={{
-                                                width: `${job.matchPercentage}%`,
-                                            }}
-                                        ></div>
+                                        ? job.matchingSkills
 
-                                    </div>
-
-                                </div>
+                                        : [];
 
 
-                                <div className="mt-6">
+                                const missingSkills =
+                                    Array.isArray(
+                                        job.missingSkills
+                                    )
 
-                                    <h3 className="text-lg font-bold mb-3 dark:text-white">
-                                        AI Recommendation
-                                    </h3>
+                                        ? job.missingSkills
 
-                                    <div className="bg-gray-100 dark:bg-gray-700 rounded-lg p-4 whitespace-pre-wrap dark:text-white">
-                                        {job.reason}
-                                    </div>
-
-                                </div>
+                                        : [];
 
 
-                                <div className="mt-6 flex gap-4">
+                                const missingKeywords =
+                                    Array.isArray(
+                                        job.missingKeywords
+                                    )
 
-                                    <button
-                                        onClick={() => applyJob(job)}
-                                        className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg"
+                                        ? job.missingKeywords
+
+                                        : [];
+
+
+                                const suggestions =
+                                    Array.isArray(
+                                        job.suggestions
+                                    )
+
+                                        ? job.suggestions
+
+                                        : [];
+
+
+                                const recommendations =
+                                    Array.isArray(
+                                        job.recommendations
+                                    )
+
+                                        ? job.recommendations
+
+                                        : [];
+
+
+                                const saved =
+                                    isJobSaved(
+                                        job
+                                    );
+
+
+                                const title =
+                                    job.title ||
+                                    job.job?.title ||
+                                    "Untitled Job";
+
+
+                                const company =
+                                    job.company ||
+                                    job.job?.company ||
+                                    "Unknown Company";
+
+
+                                const location =
+                                    job.location ||
+                                    job.job?.location ||
+                                    "";
+
+
+                                const description =
+                                    job.description ||
+                                    job.job?.description ||
+                                    "";
+
+
+                                const skills =
+                                    Array.isArray(
+                                        job.skills
+                                    )
+
+                                        ? job.skills
+
+                                        : Array.isArray(
+                                            job.job?.skills
+                                        )
+
+                                            ? job.job.skills
+
+                                            : [];
+
+
+                                return (
+
+                                    <div
+                                        key={
+                                            jobId ||
+                                            index
+                                        }
+                                        className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 hover:shadow-md transition"
                                     >
-                                        Apply Now
-                                    </button>
 
-                                    <button
-                                        onClick={() => saveJob(job)}
-                                        className="bg-green-600 hover:bg-green-700 text-white px-6 py-2 rounded-lg"
-                                    >
-                                        Save Job
-                                    </button>
+                                        {/* =================================================
+                                            JOB HEADER
+                                        ================================================= */}
 
-                                </div>
+                                        <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-5">
 
-                            </div>
+                                            <div>
 
-                        ))}
+                                                <h2 className="text-2xl font-bold text-gray-800">
+                                                    {title}
+                                                </h2>
+
+
+                                                <p className="text-blue-600 font-semibold mt-1">
+                                                    {company}
+                                                </p>
+
+
+                                                {location && (
+
+                                                    <p className="text-gray-500 mt-2">
+
+                                                        📍{" "}
+
+                                                        {location}
+
+                                                    </p>
+
+                                                )}
+
+                                            </div>
+
+
+                                            {/* MATCH SCORE */}
+
+                                            <div
+                                                className={`px-6 py-3 rounded-xl border text-center ${getMatchColor(
+                                                    matchPercentage
+                                                )}`}
+                                            >
+
+                                                <p className="text-xs font-medium">
+                                                    Resume Match
+                                                </p>
+
+
+                                                <p className="text-3xl font-bold">
+                                                    {matchPercentage}%
+                                                </p>
+
+                                            </div>
+
+                                        </div>
+
+
+                                        {/* =================================================
+                                            PROGRESS
+                                        ================================================= */}
+
+                                        <div className="mt-6">
+
+                                            <div className="flex justify-between text-sm mb-2">
+
+                                                <span className="text-gray-500">
+                                                    Compatibility
+                                                </span>
+
+
+                                                <span className="font-semibold text-gray-700">
+                                                    {matchPercentage}%
+                                                </span>
+
+                                            </div>
+
+
+                                            <div className="w-full h-3 bg-gray-100 rounded-full overflow-hidden">
+
+                                                <div
+
+                                                    className={`h-full rounded-full transition-all ${
+                                                        matchPercentage >= 80
+
+                                                            ? "bg-green-500"
+
+                                                            : matchPercentage >= 60
+
+                                                                ? "bg-yellow-500"
+
+                                                                : "bg-red-500"
+                                                    }`}
+
+                                                    style={{
+
+                                                        width:
+
+                                                            `${Math.min(
+                                                                100,
+                                                                Math.max(
+                                                                    0,
+                                                                    matchPercentage
+                                                                )
+                                                            )}%`
+
+                                                    }}
+
+                                                />
+
+                                            </div>
+
+                                        </div>
+
+
+                                        {/* =================================================
+                                            AI ANALYSIS
+                                        ================================================= */}
+
+                                        <div className="mt-7">
+
+                                            <div className="flex items-center gap-2 mb-3">
+
+                                                <span className="text-2xl">
+                                                    🤖
+                                                </span>
+
+
+                                                <h3 className="text-xl font-bold text-gray-800">
+                                                    AI Analysis
+                                                </h3>
+
+                                            </div>
+
+
+                                            <div className="bg-gray-50 border border-gray-100 rounded-xl p-5">
+
+                                                <p className="text-gray-600 leading-relaxed">
+
+                                                    {
+                                                        job.reason ||
+                                                        job.analysis ||
+                                                        `Your resume has a ${matchPercentage}% match for this position.`
+                                                    }
+
+                                                </p>
+
+                                            </div>
+
+
+                                            {/* MATCHING SKILLS */}
+
+                                            {matchingSkills.length > 0 && (
+
+                                                <div className="mt-5">
+
+                                                    <h4 className="font-semibold text-green-700 mb-3">
+                                                        ✅ Matching Skills
+                                                    </h4>
+
+
+                                                    <div className="flex flex-wrap gap-2">
+
+                                                        {matchingSkills.map(
+
+                                                            (
+                                                                skill,
+                                                                skillIndex
+                                                            ) => (
+
+                                                                <span
+                                                                    key={
+                                                                        `${skill}-${skillIndex}`
+                                                                    }
+                                                                    className="px-3 py-1.5 bg-green-50 text-green-700 border border-green-200 rounded-full text-sm"
+                                                                >
+                                                                    {skill}
+                                                                </span>
+
+                                                            )
+
+                                                        )}
+
+                                                    </div>
+
+                                                </div>
+
+                                            )}
+
+
+                                            {/* MISSING SKILLS */}
+
+                                            {missingSkills.length > 0 && (
+
+                                                <div className="mt-5">
+
+                                                    <h4 className="font-semibold text-red-700 mb-3">
+                                                        ❌ Missing Skills
+                                                    </h4>
+
+
+                                                    <div className="flex flex-wrap gap-2">
+
+                                                        {missingSkills.map(
+
+                                                            (
+                                                                skill,
+                                                                skillIndex
+                                                            ) => (
+
+                                                                <span
+                                                                    key={
+                                                                        `${skill}-${skillIndex}`
+                                                                    }
+                                                                    className="px-3 py-1.5 bg-red-50 text-red-700 border border-red-200 rounded-full text-sm"
+                                                                >
+                                                                    {skill}
+                                                                </span>
+
+                                                            )
+
+                                                        )}
+
+                                                    </div>
+
+                                                </div>
+
+                                            )}
+
+
+                                            {/* MISSING KEYWORDS */}
+
+                                            {missingKeywords.length > 0 && (
+
+                                                <div className="mt-5">
+
+                                                    <h4 className="font-semibold text-orange-700 mb-3">
+                                                        🔑 Missing Keywords
+                                                    </h4>
+
+
+                                                    <div className="flex flex-wrap gap-2">
+
+                                                        {missingKeywords.map(
+
+                                                            (
+                                                                keyword,
+                                                                keywordIndex
+                                                            ) => (
+
+                                                                <span
+                                                                    key={
+                                                                        `${keyword}-${keywordIndex}`
+                                                                    }
+                                                                    className="px-3 py-1.5 bg-orange-50 text-orange-700 border border-orange-200 rounded-full text-sm"
+                                                                >
+                                                                    {keyword}
+                                                                </span>
+
+                                                            )
+
+                                                        )}
+
+                                                    </div>
+
+                                                </div>
+
+                                            )}
+
+
+                                            {/* SUGGESTIONS */}
+
+                                            {suggestions.length > 0 && (
+
+                                                <div className="mt-5 bg-blue-50 border border-blue-100 rounded-xl p-5">
+
+                                                    <h4 className="font-semibold text-blue-700 mb-3">
+                                                        💡 Resume Improvement Suggestions
+                                                    </h4>
+
+
+                                                    <ul className="space-y-2">
+
+                                                        {suggestions.map(
+
+                                                            (
+                                                                suggestion,
+                                                                suggestionIndex
+                                                            ) => (
+
+                                                                <li
+                                                                    key={
+                                                                        `${suggestion}-${suggestionIndex}`
+                                                                    }
+                                                                    className="flex items-start gap-2 text-gray-700"
+                                                                >
+
+                                                                    <span className="text-blue-600">
+                                                                        •
+                                                                    </span>
+
+
+                                                                    <span>
+                                                                        {suggestion}
+                                                                    </span>
+
+                                                                </li>
+
+                                                            )
+
+                                                        )}
+
+                                                    </ul>
+
+                                                </div>
+
+                                            )}
+
+
+                                            {/* RECOMMENDATIONS */}
+
+                                            {recommendations.length > 0 && (
+
+                                                <div className="mt-5 bg-purple-50 border border-purple-100 rounded-xl p-5">
+
+                                                    <h4 className="font-semibold text-purple-700 mb-3">
+                                                        🎯 Job-Specific Recommendations
+                                                    </h4>
+
+
+                                                    <ul className="space-y-2">
+
+                                                        {recommendations.map(
+
+                                                            (
+                                                                recommendation,
+                                                                recommendationIndex
+                                                            ) => (
+
+                                                                <li
+                                                                    key={
+                                                                        `${recommendation}-${recommendationIndex}`
+                                                                    }
+                                                                    className="flex items-start gap-2 text-gray-700"
+                                                                >
+
+                                                                    <span className="text-purple-600">
+                                                                        •
+                                                                    </span>
+
+
+                                                                    <span>
+                                                                        {recommendation}
+                                                                    </span>
+
+                                                                </li>
+
+                                                            )
+
+                                                        )}
+
+                                                    </ul>
+
+                                                </div>
+
+                                            )}
+
+                                        </div>
+
+
+                                        {/* =================================================
+                                            JOB DETAILS
+                                        ================================================= */}
+
+                                        {(description ||
+                                            skills.length > 0) && (
+
+                                            <div className="mt-7 bg-gray-50 border border-gray-100 rounded-xl p-5">
+
+                                                <h3 className="text-lg font-bold text-gray-800 mb-4">
+                                                    Job Details
+                                                </h3>
+
+
+                                                {description && (
+
+                                                    <p className="text-gray-600 leading-relaxed">
+                                                        {description}
+                                                    </p>
+
+                                                )}
+
+
+                                                {skills.length > 0 && (
+
+                                                    <div className="mt-5">
+
+                                                        <h4 className="text-sm font-semibold text-gray-700 mb-3">
+                                                            Required Skills
+                                                        </h4>
+
+
+                                                        <div className="flex flex-wrap gap-2">
+
+                                                            {skills.map(
+
+                                                                (
+                                                                    skill,
+                                                                    skillIndex
+                                                                ) => (
+
+                                                                    <span
+                                                                        key={
+                                                                            `${skill}-${skillIndex}`
+                                                                        }
+                                                                        className="px-3 py-1.5 bg-blue-50 text-blue-600 rounded-lg text-sm"
+                                                                    >
+                                                                        {skill}
+                                                                    </span>
+
+                                                                )
+
+                                                            )}
+
+                                                        </div>
+
+                                                    </div>
+
+                                                )}
+
+                                            </div>
+
+                                        )}
+
+
+                                        {/* =================================================
+                                            ACTION BUTTONS
+                                        ================================================= */}
+
+                                        <div className="flex flex-wrap gap-3 mt-7 pt-5 border-t border-gray-100">
+
+                                            <button
+                                                onClick={() =>
+                                                    viewJob(
+                                                        job
+                                                    )
+                                                }
+                                                className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition font-medium"
+                                            >
+                                                View Job
+                                            </button>
+
+
+                                            <button
+                                                onClick={() =>
+                                                    saveJob(
+                                                        job
+                                                    )
+                                                }
+                                                disabled={
+
+                                                    !jobId ||
+
+                                                    savingJob ===
+                                                        String(
+                                                            jobId
+                                                        ) ||
+
+                                                    saved
+
+                                                }
+                                                className={`px-6 py-3 rounded-lg border font-medium transition ${
+
+                                                    saved
+
+                                                        ? "bg-green-50 text-green-600 border-green-200 cursor-not-allowed"
+
+                                                        : savingJob ===
+                                                            String(
+                                                                jobId
+                                                            )
+
+                                                            ? "bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed"
+
+                                                            : "border-blue-200 text-blue-600 hover:bg-blue-50"
+
+                                                }`}
+                                            >
+
+                                                {saved
+
+                                                    ? "✅ Saved"
+
+                                                    : savingJob ===
+                                                        String(
+                                                            jobId
+                                                        )
+
+                                                        ? "Saving..."
+
+                                                        : "🔖 Save Job"
+
+                                                }
+
+                                            </button>
+
+                                        </div>
+
+                                    </div>
+
+                                );
+
+                            }
+
+                        )}
 
                     </div>
 
@@ -529,7 +1736,10 @@ function JobMatches() {
             </div>
 
         </Layout>
+
     );
+
 }
+
 
 export default JobMatches;

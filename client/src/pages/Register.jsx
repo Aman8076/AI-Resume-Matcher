@@ -4,85 +4,116 @@ import API from "../services/api";
 import toast from "react-hot-toast";
 
 function Register() {
-  const navigate = useNavigate();
 
-  const [formData, setFormData] = useState({
-    name: "",
-    email: "",
-    password: "",
-  });
+    const navigate = useNavigate();
 
-  const handleChange = (e) => {
-    setFormData({
-      ...formData,
-      [e.target.name]: e.target.value,
+    const [formData, setFormData] = useState({
+        name: "",
+        email: "",
+        password: "",
     });
-  };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+    const handleChange = (e) => {
+        setFormData({
+            ...formData,
+            [e.target.name]: e.target.value,
+        });
+    };
 
-    try {
-      await API.post("/auth/register", formData);
+    const handleSubmit = async (e) => {
 
-      toast.success("Registration Successful");
+        e.preventDefault();
 
-      navigate("/");
-    } catch (error) {
-      toast.error(error.response?.data?.message || "Registration Failed");
-    }
-  };
+        try {
 
-  return (
-    <div className="min-h-screen bg-gray-100 flex items-center justify-center">
-      <div className="bg-white shadow-xl rounded-xl w-96 p-8">
-        <h1 className="text-3xl font-bold text-center mb-6">Register</h1>
+            await API.post("/auth/register", formData);
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <input
-            type="text"
-            name="name"
-            placeholder="Full Name"
-            value={formData.name}
-            onChange={handleChange}
-            className="w-full border p-3 rounded"
-            required
-          />
+            toast.success("Registration Successful");
 
-          <input
-            type="email"
-            name="email"
-            placeholder="Email"
-            value={formData.email}
-            onChange={handleChange}
-            className="w-full border p-3 rounded"
-            required
-          />
+            navigate("/");
 
-          <input
-            type="password"
-            name="password"
-            placeholder="Password"
-            value={formData.password}
-            onChange={handleChange}
-            className="w-full border p-3 rounded"
-            required
-          />
+        } catch (error) {
 
-          <button className="w-full bg-green-600 text-white p-3 rounded hover:bg-green-700">
-            Register
-          </button>
-        </form>
+            toast.error(
+                error.response?.data?.message || "Registration Failed"
+            );
 
-        <p className="text-center mt-5">
-          Already have an account?
-          <Link to="/" className="text-blue-600 ml-2">
-            Login
-          </Link>
-        </p>
-      </div>
-    </div>
-  );
+        }
+
+    };
+
+    return (
+
+        <div className="min-h-screen bg-gray-100 flex items-center justify-center">
+
+            <div className="bg-white shadow-xl rounded-xl w-96 p-8">
+
+                <h1 className="text-3xl font-bold text-center mb-6">
+                    Register
+                </h1>
+
+                <form
+                    onSubmit={handleSubmit}
+                    className="space-y-4"
+                >
+
+                    <input
+                        type="text"
+                        name="name"
+                        placeholder="Full Name"
+                        value={formData.name}
+                        onChange={handleChange}
+                        className="w-full border p-3 rounded"
+                        required
+                    />
+
+                    <input
+                        type="email"
+                        name="email"
+                        placeholder="Email"
+                        value={formData.email}
+                        onChange={handleChange}
+                        className="w-full border p-3 rounded"
+                        required
+                    />
+
+                    <input
+                        type="password"
+                        name="password"
+                        placeholder="Password"
+                        value={formData.password}
+                        onChange={handleChange}
+                        className="w-full border p-3 rounded"
+                        required
+                    />
+
+                    <button
+                        className="w-full bg-green-600 text-white p-3 rounded hover:bg-green-700"
+                    >
+                        Register
+                    </button>
+
+                </form>
+
+                <p className="text-center mt-5">
+
+                    Already have an account?
+
+                    <Link
+                        to="/"
+                        className="text-blue-600 ml-2"
+                    >
+                        Login
+                    </Link>
+
+                </p>
+
+            </div>
+
+        </div>
+
+    );
+
 }
 
 export default Register;

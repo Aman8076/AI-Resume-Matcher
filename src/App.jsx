@@ -1,24 +1,16 @@
-import { useEffect, useState } from "react";
-import axios from "axios";
+import Navbar from "./components/Navbar";
+import Hero from "./components/Hero";
+import Features from "./components/Features";
+import Footer from "./components/Footer";
 
 function App() {
-  const [message, setMessage] = useState("");
-
-  useEffect(() => {
-    axios
-      .get("http://localhost:5000/api")
-
-      .then((response) => {
-        setMessage(response.data.message);
-      });
-  }, []);
-
   return (
-    <div>
-      <h1>AI Resume Matcher</h1>
-
-      <h2>{message}</h2>
-    </div>
+    <>
+      <Navbar />
+      <Hero />
+      <Features />
+      <Footer />
+    </>
   );
 }
 
