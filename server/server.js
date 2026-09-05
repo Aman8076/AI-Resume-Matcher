@@ -100,7 +100,7 @@ const allowedOrigins = [
 
     "http://localhost:5174",
 
-    "https://ai-resume-matcher-4.onrender.com"
+    "https://ai-resume-matcher-2-a02z.onrender.com"
 
 ];
 
